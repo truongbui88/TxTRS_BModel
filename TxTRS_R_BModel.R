@@ -37,7 +37,7 @@ tier <- 3
 #Early retirement" Either Age 55 + 25 YOS or Age 60
 
 #FileName <- 'NDPERS_BM_Inputs.xlsx'
-FileName <- '/Users/anilniraula/SCRS_BModel/TxTRSS_BM_Inputs.xlsx'
+FileName <- '/Users/anilniraula/TxTRS_BModel/TxTRS_BM_Inputs.xlsx'
 #FileName <- "https://github.com/ANiraula/NDPERS_BModel/blob/main/NDPERS_BM_Inputs.xlsx?raw=true"
 
 #urlfile="https://github.com/ANiraula/NDPERS_BModel/blob/main/NDPERS_BM_Inputs.xlsx?raw=true"
@@ -245,16 +245,16 @@ mortality <- function(data = MortalityTable,
                                       #else{ScaleMultipleFeMaleGeneralRet}
                                       ),
            mort_male = ifelse(IsRetirementEligible(Age, YOS, tier = tier)==F, 
-                              if(employee == "Blend"){PubG_2010_employee_male_blend*((1.3+1.35)/2)}
-                              else if(employee == "Teachers"){PubG_2010_employee_male_teacher*1.3}
-                              else{PubG_2010_employee_male_general*1.35}, #Adding adj. factors
+                              if(employee == "Blend"){PubS_2010_employee_male_blend*((1.3+1.35)/2)}
+                              else if(employee == "Teachers"){PubS_2010_employee_male_teacher*1.3}
+                              else{PubS_2010_employee_male_general*1.35}, #Adding adj. factors
                               (if(employee == "Blend"){SCRS_2020_employee_male_blend * ifelse(Age > 90, ScaleMultipleMaleBlendRet, 1)}#* ((ScaleMultipleMaleTeacherRet+ScaleMultipleMaleGeneralRet)/2)}
                               else if(employee == "Teachers"){SCRS_2020_employee_male_teacher * ifelse(Age > 90, ScaleMultipleMaleTeacherRet, 1)}# * ScaleMultipleMaleTeacherRet}
                               else{SCRS_2020_employee_male_general * ifelse(Age > 90, ScaleMultipleMaleGeneralRet, 1)}) * MPcumprod_male),#* ScaleMultipleMaleGeneralRet}) 
            mort_female = ifelse(IsRetirementEligible(Age, YOS, tier = tier)==F, 
-                              if(employee == "Blend"){PubG_2010_employee_female_blend*((1.1+1.35)/2)}
-                              else if(employee == "Teachers"){PubG_2010_employee_female_teacher*1.1}
-                              else{PubG_2010_employee_female_general*1.35}, #Adding adj. facctors
+                              if(employee == "Blend"){PubS_2010_employee_female_blend*((1.1+1.35)/2)}
+                              else if(employee == "Teachers"){PubS_2010_employee_female_teacher*1.1}
+                              else{PubS_2010_employee_female_general*1.35}, #Adding adj. facctors
                               (if(employee == "Blend"){SCRS_2020_employee_female_blend * ifelse(Age > 90, ScaleMultipleFeMaleBlendRet, 1)}# * ((ScaleMultipleFeMaleTeacherRet+ScaleMultipleFeMaleGeneralRet)/2)}
                               else if(employee == "Teachers"){SCRS_2020_employee_female_teacher * ifelse(Age > 90, ScaleMultipleFeMaleTeacherRet, 1)}# * ScaleMultipleFeMaleTeacherRet}
                               else{SCRS_2020_employee_female_general * ifelse(Age > 90, ScaleMultipleFeMaleGeneralRet, 1)})* MPcumprod_female),# * ScaleMultipleFeMaleGeneralRet}) 
@@ -298,10 +298,10 @@ MortalityTable <- mortality(data = MortalityTable,
 #          #to cumsum over 2011+ & then multiply by 2010 MP-2019
 #          #removed /(1 - MaleMP_final[Years == 2010])
 #          MPcumprod_female = cumprod(1 - FemaleMP_final),
-#          mort_male = ifelse(IsRetirementEligible(Age, YOS)==F, PubG_2010_employee_male * ScaleMultipleMaleAct, #Adding adj. facctors
-#                             PubG_2010_healthy_retiree_male * ScaleMultipleMaleRet) * MPcumprod_male,
-#          mort_female = ifelse(IsRetirementEligible(Age, YOS)==F, PubG_2010_employee_female * ScaleMultipleFemaleAct,
-#                               PubG_2010_healthy_retiree_female * ScaleMultipleFemaleRet) * MPcumprod_female,
+#          mort_male = ifelse(IsRetirementEligible(Age, YOS)==F, PubS_2010_employee_male * ScaleMultipleMaleAct, #Adding adj. facctors
+#                             PubS_2010_healthy_retiree_male * ScaleMultipleMaleRet) * MPcumprod_male,
+#          mort_female = ifelse(IsRetirementEligible(Age, YOS)==F, PubS_2010_employee_female * ScaleMultipleFemaleAct,
+#                               PubS_2010_healthy_retiree_female * ScaleMultipleFemaleRet) * MPcumprod_female,
 #          mort = (mort_male + mort_female)/2) %>% 
 #          #Recalcualting average
 #   filter(Years >= 2021, entry_age >= 20) %>% 
@@ -372,7 +372,7 @@ if(tier == 3){
                                        ifelse(retirement_type == "Reduced", if(employee == "Blend"){ReducedMaleBlend}
                                               else if(employee == "Teachers"){ReducedMaleTeacher}
                                               else{ReducedMaleGeneral},#Using 6 ifelse/if statements for 3 EE & 3 ret. types
-                                              ifelse(YOS < 11, 
+                                              ifelse(YOS < 10, 
                                                      if(employee == "Blend"){TermBefore10BlendMale}
                                                      else if(employee == "Teachers"){TermBefore10TeacherMale}
                                                      else{TermBefore10GeneralMale}, 
@@ -386,7 +386,7 @@ if(tier == 3){
                                          ifelse(retirement_type == "Reduced", if(employee == "Blend"){ReducedFeMaleBlend}
                                                 else if(employee == "Teachers"){ReducedFeMaleTeacher}
                                                 else{ReducedFeMaleGeneral},#Using 6 ifelse/if statements for 3 EE & 3 ret. types
-                                                ifelse(YOS < 11, 
+                                                ifelse(YOS < 10, 
                                                        if(employee == "Blend"){TermBefore10BlendFeMale}
                                                        else if(employee == "Teachers"){TermBefore10TeacherFeMale}
                                                        else{TermBefore10GeneralFeMale}, 
