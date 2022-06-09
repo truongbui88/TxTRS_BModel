@@ -47,7 +47,7 @@ YearStart <- 2021
 Age <- 20:120
 YOS <- 0:100
 RetirementAge <- 20:120
-Years <- 2011:2121    #(why 2121? Because 120 - 20 + 2021 = 2121)
+Years <- 2015:2121    #(why 2121? Because 120 - 20 + 2021 = 2121)
 #Updated from 2010 to 2011
 
 #Assigning individual  Variables
@@ -68,22 +68,22 @@ SurvivalRates <- read_excel(FileName, sheet = 'Mortality Rates')
 
 #View(SurvivalRates)
 #View(MaleMP)
-MaleMP <- read_excel(FileName, sheet = 'MP-2019_Male') #Updated* (to MP-2019)
-FemaleMP <- read_excel(FileName, sheet = 'MP-2019_Female')#Updated* (to MP-2019)
+MaleMP <- read_excel(FileName, sheet = 'MP-2018_Male') #Updated*
+FemaleMP <- read_excel(FileName, sheet = 'MP-2018_Female')#Updated*
 #SalaryGrowth <- read_excel(FileName, sheet = "Salary Growth")#Updated* (How to combined YOS & AGE increases?)
 
 ### Addition ###
-SalaryGrowthYOS <- read_excel(FileName, sheet = "Salary Growth YOS")#Updated to SCRS* (YOS)
+SalaryGrowthYOS <- read_excel(FileName, sheet = "Salary Growth YOS")#Updated
 #View(SalaryGrowthYOS)
 
 ################
-SalaryEntry <- read_excel(FileName, sheet = ifelse(tier == 3, "Salary and Headcount", "Salary and Headcount 2")) %>% #Updated*
+SalaryEntry <- read_excel(FileName, sheet = ifelse(tier == 3, "Salary and Headcount", "Salary and Headcount 2")) %>% #Updated
   select(entry_age, start_sal, count_start)#Updated to SCRS*
 #View(SalaryEntry)
 
 ##############
-TerminationRateAfter10 <- read_excel(FileName, sheet = 'Termination Rates after 10')#Updated to SCRS*
-TerminationRateBefore10 <- read_excel(FileName, sheet = 'Termination Rates before 10')#Updated to SCRS*
+TerminationRateAfter10 <- read_excel(FileName, sheet = 'Termination Rates after 10')#Updated*
+TerminationRateBefore10 <- read_excel(FileName, sheet = 'Termination Rates before 10')#Updated*
 
 ################################# Function
 BenefitModel <- function(employee = "Blend", tier = 3, NCost = FALSE,
@@ -231,7 +231,7 @@ mortality <- function(data = MortalityTable,
     group_by(Age) %>%
     
           #MPcumprod is the cumulative product of (1 - MP rates), starting from 2011. We use it later so make life easy and calculate now
-          mutate(MPcumprod_male = cumprod(1 - MaleMP_final*0.8
+          mutate(MPcumprod_male = cumprod(1 - MaleMP_final*0.9
                                    # if(employee == "Blend"){ScaleMultipleMaleBlendRet}
                                     #else if(employee == "Teachers"){ScaleMultipleMaleTeacherRet}
                                     #else{ScaleMultipleMaleGeneralRet}
@@ -239,25 +239,15 @@ mortality <- function(data = MortalityTable,
            #Started mort. table from 2011 (instead of 2010) 
            #to cumsum over 2011+ & then multiply by 2010 MP-2019
            #removed /(1 - MaleMP_final[Years == 2010])
-           MPcumprod_female = cumprod(1 - FemaleMP_final*0.8
+           MPcumprod_female = cumprod(1 - FemaleMP_final*0.9
                                       #if(employee == "Blend"){ScaleMultipleFeMaleBlendRet}
                                       #else if(employee == "Teachers"){ScaleMultipleFeMaleTeacherRet}
                                       #else{ScaleMultipleFeMaleGeneralRet}
                                       ),
-           mort_male = ifelse(IsRetirementEligible(Age, YOS, tier = tier)==F, 
-                              if(employee == "Blend"){PubS_2010_employee_male_blend*((1.3+1.35)/2)}
-                              else if(employee == "Teachers"){PubS_2010_employee_male_teacher*1.3}
-                              else{PubS_2010_employee_male_general*1.35}, #Adding adj. factors
-                              (if(employee == "Blend"){SCRS_2020_employee_male_blend * ifelse(Age > 90, ScaleMultipleMaleBlendRet, 1)}#* ((ScaleMultipleMaleTeacherRet+ScaleMultipleMaleGeneralRet)/2)}
-                              else if(employee == "Teachers"){SCRS_2020_employee_male_teacher * ifelse(Age > 90, ScaleMultipleMaleTeacherRet, 1)}# * ScaleMultipleMaleTeacherRet}
-                              else{SCRS_2020_employee_male_general * ifelse(Age > 90, ScaleMultipleMaleGeneralRet, 1)}) * MPcumprod_male),#* ScaleMultipleMaleGeneralRet}) 
-           mort_female = ifelse(IsRetirementEligible(Age, YOS, tier = tier)==F, 
-                              if(employee == "Blend"){PubS_2010_employee_female_blend*((1.1+1.35)/2)}
-                              else if(employee == "Teachers"){PubS_2010_employee_female_teacher*1.1}
-                              else{PubS_2010_employee_female_general*1.35}, #Adding adj. facctors
-                              (if(employee == "Blend"){SCRS_2020_employee_female_blend * ifelse(Age > 90, ScaleMultipleFeMaleBlendRet, 1)}# * ((ScaleMultipleFeMaleTeacherRet+ScaleMultipleFeMaleGeneralRet)/2)}
-                              else if(employee == "Teachers"){SCRS_2020_employee_female_teacher * ifelse(Age > 90, ScaleMultipleFeMaleTeacherRet, 1)}# * ScaleMultipleFeMaleTeacherRet}
-                              else{SCRS_2020_employee_female_general * ifelse(Age > 90, ScaleMultipleFeMaleGeneralRet, 1)})* MPcumprod_female),# * ScaleMultipleFeMaleGeneralRet}) 
+           mort_male = (ifelse(IsRetirementEligible(Age, YOS, tier = tier)==T, 
+                               RP_2014_ann_employee_male_blend*((1.3+1.35)/2), RP_2014_employee_male_blend*1.35) * MPcumprod_male),#* ScaleMultipleMaleGeneralRet}) 
+           mort_female = (ifelse(IsRetirementEligible(Age, YOS, tier = tier)==T, 
+                                 RP_2014_ann_employee_female_blend*((1.3+1.35)/2), RP_2014_employee_female_blend*1.35) * MPcumprod_female),# * ScaleMultipleFeMaleGeneralRet}) 
            mort = (mort_male + mort_female)/2) %>% 
     #Recalcualting average
     filter(Years >= 2021, entry_age >= 20) %>% 
