@@ -130,8 +130,10 @@ IsRetirementEligible <- function(Age, YOS, tier = 3){
    #Class III new hire rule
    Check = if(tier == 3){
    ifelse((Age >= NormalRetAgeI & YOS >= NormalYOSI) |
-                   (YOS + Age >= NormalRetRule & YOS >= NormalYOSI) |
-                   (Age >= ReduceRetAge & YOS >= NormalYOSI), TRUE, FALSE)} else{
+                   (YOS + Age >= NormalRetRule & Age >= NormalRetRuleAge) |
+                   (Age >= ReduceRetAge & YOS >= NormalYOSI) |
+                   (YOS >= EarlyRetAge) |
+                   (YOS + Age >= NormalRetRule), TRUE, FALSE)} else{
    #CLass II legacy rule
    ifelse((Age >= NormalRetAgeII & YOS >= (NormalYOSI-3)) |
                    (YOS >= NormalYOSII) |
@@ -142,6 +144,9 @@ IsRetirementEligible <- function(Age, YOS, tier = 3){
 }
 ####
 
+### Custom early retirement reduction factors (AGe 55-60)
+#reduced <- data.frame(Age = seq(55, 65, by = 1),
+#                      Red = c(0.43,0.46,0.5,0.55,0.59,0.64,0.7,0.76,0.84,0.91,1))  
 ################
 # New rule: 3 Retirement Types
 ################
@@ -153,13 +158,15 @@ IsRetirementEligible <- function(Age, YOS, tier = 3){
 
 RetirementType <- function(Age, YOS, tier = 3){
   Check = if(tier == 3){
-    ifelse((Age >= NormalRetAgeI & YOS >= NormalYOSI), "Normal No Rule of 90",
-                 ifelse((YOS + Age >= NormalRetRule & YOS >= NormalYOSI & Age < NormalRetAgeI), "Normal With Rule of 90",
-                        ifelse((Age >= ReduceRetAge & YOS >= NormalYOSI), "Reduced","No")))}
+    ifelse((Age >= NormalRetAgeI & YOS >= NormalYOSI), "Normal No Rule of 80",
+                 ifelse((YOS + Age >= NormalRetRule & Age >= 62), "Normal With Rule of 80",
+                        ifelse((Age >= ReduceRetAge & YOS >= NormalYOSI) | 
+                                  (YOS >= EarlyRetAge) |
+                                  (YOS + Age >= NormalRetRule), "Reduced","No")))}
   #CLass II Legacy
   else{
-                              ifelse(Age >= NormalRetAgeII & YOS >= (NormalYOSI-3), "Normal No Rule of 90", # Means No YOS -> Age 65
-                                     ifelse(YOS >= NormalYOSII, "Normal With Rule of 90", #Means With 28 YOS before Age 65
+                              ifelse(Age >= NormalRetAgeII & YOS >= (NormalYOSI-3), "Normal No Rule of 80", # Means No YOS -> Age 65
+                                     ifelse(YOS >= NormalYOSII, "Normal With Rule of 80", #Means With 28 YOS before Age 65
                                         ifelse((Age >= (ReduceRetAge-5) & YOS >= (NormalYOSII-3)) | Age >= ReduceRetAge, "Reduced","No")))}
   
   return(Check)
@@ -523,7 +530,7 @@ ReducedFactor <- expand_grid(Age, YOS) %>%
   mutate(#AgeNormRet = 120 - sum(norm_retire) + 1,     #This is the earliest age of normal retirement given the YOS
          #YearsNormRet = AgeNormRet - Age,
          RetType = RetirementType(Age, YOS),
-         RF = ifelse(RetType == "Reduced", 1 - (AgeRed)*(NormalRetAgeI-Age),#AgeRet is for Class Three EE
+         RF = ifelse(RetType == "Reduced", 1 - (AgeRed)*(NormalRetRuleAge-Age),#Updated to "NormalRetRuleAge"
                     ifelse(RetType == "No", 0, 1) ),
          RF = ifelse(RF <0,0,RF)) %>% 
   rename(RetirementAge = Age) %>% 
