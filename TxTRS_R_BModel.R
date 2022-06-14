@@ -774,7 +774,7 @@ pwealth <- ggplot(SalaryData2, aes(Age,PVPenWealth/1000, fill = "DB Accrual Patt
                 text = paste0("Age: ", Age,
                               "<br>Members Remaining: ", round(RemainingProb*100,1), "%"),fill = "Share or Members Remaining"), size = 1, color = palette_reason$LightBlue, linetype = "dashed")+
   scale_x_continuous(breaks = seq(0, 80, by = 10),labels = function(x) paste0(x),
-                     name = paste0("Age (Entry age at 27"), expand = c(0,0)) +
+                     name = paste0("Age (Entry age at 27)"), expand = c(0,0)) +
 
   scale_y_continuous(breaks = seq(0, y_max/1000, by = 100),limits = c(0, y_max/1000*1.1), labels = function(x) paste0("$",x),
                      sec.axis = ggplot2::sec_axis(~./(y_max/100),
