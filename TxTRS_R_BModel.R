@@ -712,16 +712,16 @@ SalaryData2 <- data.frame(
                                        NCost = FALSE, #(TRUE -- calculates GNC on original SalaryData)
                                        DC = TRUE, #(TRUE -- calculates DC using e.age)
                                        e.age = 27, #for DC
-                                       ARR = 0.07, #can set manually
-                                       COLA = 0.01, #can set manually
-                                       BenMult = 0.0182, #can set manually
-                                       DC_EE_cont =  0.09, #can set manually
-                                       DC_ER_cont = 0.05, #can set manually
-                                       DC_return = 0.05)
+                                       ARR =  ARR , #can set manually
+                                       COLA = COLA, #can set manually
+                                       BenMult = BenMult , #can set manually
+                                       DC_EE_cont =  0.08, #can set manually
+                                       DC_ER_cont = 0.06, #can set manually
+                                       DC_return = 0.06)
                           )
 ################################
 
-#View(SalaryData2)
+#SalaryData2
 #data <- SalaryData2 %>% select(entry_age, Age, YOS, RealPenWealth)
  
 #Save outputs
