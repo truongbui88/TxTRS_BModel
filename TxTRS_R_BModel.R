@@ -61,6 +61,7 @@ for(i in 1:nrow(model_inputs)){
 
 SurvivalRates <- read_excel(FileName, sheet = 'Mortality Rates')
 
+#View(SurvivalRates)
 #Updated* (to Pub-2010 General & teachers * Multipliers -> Actives)
 #Updated* (to Pub-2010 General & Teachers * Multipliers * 80% * MP-2019 Ultimate -> Retirees Ag 91+)
 #Updated* (to SCRS Table 2020 * 80% * MP-2019 Ultimate -> Retirees Age < 91)
@@ -158,7 +159,9 @@ RetirementType <- function(Age, YOS, tier = 3){
   Check = if(tier == 3){
     ifelse((Age >= NormalRetAgeI & YOS >= NormalYOSI), "Normal No Rule of 80",
                  ifelse((YOS + Age >= NormalRetRule & Age >= 62), "Normal With Rule of 80",
-                        ifelse((Age >= ReduceRetAge & YOS >= NormalYOSI) | YOS >= EarlyRetAge, "Reduced","No")))}
+                        ifelse((Age >= ReduceRetAge & YOS >= NormalYOSI) | 
+                                YOS >= EarlyRetAge & Age >= 62 & YOS < NormalYOSI  | 
+                                (YOS + Age >= NormalRetRule & Age >= 62 & YOS < NormalYOSI), "Reduced","No")))}
   #https://www.trs.texas.gov/TRS%20Documents/benefits-tier-guide.pdf
   
   #CLass II Legacy
@@ -541,7 +544,7 @@ ReducedFactor <- expand_grid(Age, YOS) %>%
   select(-Red) %>%
   ungroup() 
 
-View(ReducedFactor)
+#View(ReducedFactor)
 
 x <- ReducedFactor %>% 
 group_by(YOS) %>%
