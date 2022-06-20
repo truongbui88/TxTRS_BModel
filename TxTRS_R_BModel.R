@@ -47,8 +47,7 @@ YearStart <- 2021
 Age <- 20:120
 YOS <- 0:100
 RetirementAge <- 20:120
-Years <- 2015:2121    #(why 2121? Because 120 - 20 + 2021 = 2121)
-#Updated from 2010 to 2011
+Years <- 2015:2121    #Start from Mortality Table + 1 year (RP-2014 + 1 = 2015)
 
 #Assigning individual  Variables
 model_inputs <- read_excel(FileName, sheet = 'Main')
@@ -239,7 +238,7 @@ mortality <- function(data = MortalityTable,
     group_by(Age) %>%
     
           #MPcumprod is the cumulative product of (1 - MP rates), starting from 2011. We use it later so make life easy and calculate now
-          mutate(MPcumprod_male = cumprod(1 - MaleMP_final*0.9
+          mutate(MPcumprod_male = cumprod(1 - MaleMP_final
                                    # if(employee == "Blend"){ScaleMultipleMaleBlendRet}
                                     #else if(employee == "Teachers"){ScaleMultipleMaleTeacherRet}
                                     #else{ScaleMultipleMaleGeneralRet}
@@ -247,15 +246,15 @@ mortality <- function(data = MortalityTable,
            #Started mort. table from 2011 (instead of 2010) 
            #to cumsum over 2011+ & then multiply by 2010 MP-2019
            #removed /(1 - MaleMP_final[Years == 2010])
-           MPcumprod_female = cumprod(1 - FemaleMP_final*0.9
+           MPcumprod_female = cumprod(1 - FemaleMP_final
                                       #if(employee == "Blend"){ScaleMultipleFeMaleBlendRet}
                                       #else if(employee == "Teachers"){ScaleMultipleFeMaleTeacherRet}
                                       #else{ScaleMultipleFeMaleGeneralRet}
                                       ),
            mort_male = (ifelse(IsRetirementEligible(Age, YOS, tier = tier)==T, 
-                               RP_2014_ann_employee_male_blend, RP_2014_employee_male_blend) * MPcumprod_male),#* ScaleMultipleMaleGeneralRet}) 
+                               RP_2014_ann_employee_male_blend, RP_2014_employee_male_blend*90) * MPcumprod_male),#* ScaleMultipleMaleGeneralRet}) 
            mort_female = (ifelse(IsRetirementEligible(Age, YOS, tier = tier)==T, 
-                                 RP_2014_ann_employee_female_blend, RP_2014_employee_female_blend) * MPcumprod_female),# * ScaleMultipleFeMaleGeneralRet}) 
+                                 RP_2014_ann_employee_female_blend, RP_2014_employee_female_blend*90) * MPcumprod_female),# * ScaleMultipleFeMaleGeneralRet}) 
            mort = (mort_male + mort_female)/2) %>% 
     #Recalcualting average
     filter(Years >= 2021, entry_age >= 20) %>% 
@@ -276,7 +275,7 @@ MortalityTable <- mortality(data = MortalityTable,
                             MaleMP_ultimate = MaleMP_ultimate,
                             FemaleMP_ultimate = FemaleMP_ultimate)
 
-#View(MortalityTable)
+#View(MortalityTable %>% filter(Years == 2048 & Age == 50))
 #Join base mortality table with mortality improvement table and calculate the final mortality rates
 # MortalityTable <- MortalityTable %>% 
 #   left_join(SurvivalRates, by = "Age") %>% 
@@ -632,7 +631,6 @@ SalaryData <- SalaryData %>%
 #SalaryData1.2 <- SalaryData %>% filter(entry_age ==27 & Age < 81)
 ####### DC Account Balance 
 
-
 if(isTRUE(DC)){
   
 SalaryData2 <- SalaryData %>% filter(entry_age == e.age & Age < 81)
@@ -705,7 +703,6 @@ NC_aggregate}else{SalaryData2}
 
 #### BenefitModel ####
 
-
 SalaryData2 <- data.frame(
                           BenefitModel(employee = "Blend", #"Teachers", "General"
                                        tier = 3, #tier 2 for Legacy
@@ -721,7 +718,7 @@ SalaryData2 <- data.frame(
                           )
 ################################
 
-#SalaryData2
+#View(SalaryData2)
 #data <- SalaryData2 %>% select(entry_age, Age, YOS, RealPenWealth)
  
 #Save outputs
