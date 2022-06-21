@@ -60,6 +60,7 @@ for(i in 1:nrow(model_inputs)){
 
 SurvivalRates <- read_excel(FileName, sheet = 'Mortality Rates')
 
+
 #View(SurvivalRates)
 #Updated* (to Pub-2010 General & teachers * Multipliers -> Actives)
 #Updated* (to Pub-2010 General & Teachers * Multipliers * 80% * MP-2019 Ultimate -> Retirees Ag 91+)
@@ -70,7 +71,6 @@ SurvivalRates <- read_excel(FileName, sheet = 'Mortality Rates')
 #View(MaleMP)
 MaleMP <- read_excel(FileName, sheet = 'MP-2018_Male') #Updated*
 FemaleMP <- read_excel(FileName, sheet = 'MP-2018_Female')#Updated*
-#SalaryGrowth <- read_excel(FileName, sheet = "Salary Growth")#Updated* (How to combined YOS & AGE increases?)
 
 ### Addition ###
 SalaryGrowthYOS <- read_excel(FileName, sheet = "Salary Growth YOS")#Updated
@@ -132,7 +132,7 @@ IsRetirementEligible <- function(Age, YOS, tier = 3){
    ifelse((Age >= NormalRetAgeI & YOS >= NormalYOSI) |
                    (YOS + Age >= NormalRetRule & Age >= NormalRetRuleAge) |
                    (Age >= ReduceRetAge & YOS >= NormalYOSI) |
-                   (YOS >= EarlyRetAge) |
+                   (YOS >= EarlyRetYOS) |
                    (YOS + Age >= NormalRetRule), TRUE, FALSE)} else{
    #CLass II legacy rule
    ifelse((Age >= NormalRetAgeII & YOS >= (NormalYOSI-3)) |
@@ -157,10 +157,10 @@ IsRetirementEligible <- function(Age, YOS, tier = 3){
 RetirementType <- function(Age, YOS, tier = 3){
   Check = if(tier == 3){
     ifelse((Age >= NormalRetAgeI & YOS >= NormalYOSI), "Normal No Rule of 80",
-                 ifelse((YOS + Age >= NormalRetRule & Age >= 62), "Normal With Rule of 80",
+                 ifelse((YOS + Age >= NormalRetRule & Age >= 62 & YOS >= NormalYOSI), "Normal With Rule of 80",
                         ifelse((Age >= ReduceRetAge & YOS >= NormalYOSI) | 
-                                YOS >= EarlyRetAge & Age >= 62 & YOS < NormalYOSI  | 
-                                (YOS + Age >= NormalRetRule & Age >= 62 & YOS < NormalYOSI), "Reduced","No")))}
+                                (YOS >= EarlyRetYOS & YOS >= NormalYOSI)  | 
+                                (YOS + Age >= NormalRetRule & YOS >= NormalYOSI), "Reduced","No")))}
   #https://www.trs.texas.gov/TRS%20Documents/benefits-tier-guide.pdf
   
   #CLass II Legacy
@@ -252,9 +252,9 @@ mortality <- function(data = MortalityTable,
                                       #else{ScaleMultipleFeMaleGeneralRet}
                                       ),
            mort_male = (ifelse(IsRetirementEligible(Age, YOS, tier = tier)==T, 
-                               RP_2014_ann_employee_male_blend, RP_2014_employee_male_blend*90) * MPcumprod_male),#* ScaleMultipleMaleGeneralRet}) 
+                               RP_2014_ann_employee_male_blend, RP_2014_employee_male_blend*0.9) * MPcumprod_male),#* ScaleMultipleMaleGeneralRet}) 
            mort_female = (ifelse(IsRetirementEligible(Age, YOS, tier = tier)==T, 
-                                 RP_2014_ann_employee_female_blend, RP_2014_employee_female_blend*90) * MPcumprod_female),# * ScaleMultipleFeMaleGeneralRet}) 
+                                 RP_2014_ann_employee_female_blend, RP_2014_employee_female_blend*0.90) * MPcumprod_female),# * ScaleMultipleFeMaleGeneralRet}) 
            mort = (mort_male + mort_female)/2) %>% 
     #Recalcualting average
     filter(Years >= 2021, entry_age >= 20) %>% 
@@ -275,6 +275,7 @@ MortalityTable <- mortality(data = MortalityTable,
                             MaleMP_ultimate = MaleMP_ultimate,
                             FemaleMP_ultimate = FemaleMP_ultimate)
 
+#View(MortalityTable %>% filter(Years == 2048 & Age > 45))
 #View(MortalityTable %>% filter(Years == 2048 & Age == 50))
 #Join base mortality table with mortality improvement table and calculate the final mortality rates
 # MortalityTable <- MortalityTable %>% 
@@ -332,7 +333,6 @@ x <- SeparationRates %>%
 SeparationRates  <- SeparationRates %>% inner_join(x, by = "entry_age")
 SeparationRates  <- SeparationRates %>% select(-first_retire) %>% mutate(YearsFirstRetire = first_ret-Age)
 
-
 #Separation Rates
 SeparationRates <- SeparationRates %>% 
   left_join(TerminationRateAfter10, by = "YearsFirstRetire") %>% #Joining by new YearsFirstRetire
@@ -341,7 +341,6 @@ SeparationRates <- SeparationRates %>%
   ### Additions ###
   mutate_all(as.numeric) %>% 
   replace(is.na(.), 0)  
-
 
 if(tier == 2){ 
 SeparationRates <- SeparationRates %>% 
@@ -499,6 +498,7 @@ AnnuityF <- function(data = MortalityTable,
 
 AnnFactorData <- AnnuityF(data = MortalityTable,
                           ColaType = "Compound")
+#View(AnnFactorData)
 ### Implement $500 cap?
 
 
@@ -536,13 +536,13 @@ ReducedFactor <- expand_grid(Age, YOS) %>%
   mutate(#AgeNormRet = 120 - sum(norm_retire) + 1,     #This is the earliest age of normal retirement given the YOS
          #YearsNormRet = AgeNormRet - Age,
          RetType = RetirementType(Age, YOS),
-         RF = ifelse(RetType == "Reduced", Red,#Custom penalty for Age 55-65
-                    ifelse(RetType == "No", 0, 1) ),
+         RF = ifelse(RetType == "Reduced" & Age >= ReduceRetAge, Red, 
+                     ifelse(RetType == "Reduced" & Age < ReduceRetAge, 1 - (AgeRed)*(62-Age), 
+                            ifelse(RetType == "No", 0, 1))),
          RF = ifelse(RF <0,0,RF)) %>% 
   rename(RetirementAge = Age) %>% 
   select(-Red) %>%
   ungroup() 
-
 #View(ReducedFactor)
 
 x <- ReducedFactor %>% 
