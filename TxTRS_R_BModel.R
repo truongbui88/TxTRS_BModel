@@ -537,13 +537,15 @@ ReducedFactor <- expand_grid(Age, YOS) %>%
          #YearsNormRet = AgeNormRet - Age,
          RetType = RetirementType(Age, YOS),
          RF = ifelse(RetType == "Reduced" & Age >= ReduceRetAge, Red, 
-                     ifelse(RetType == "Reduced" & Age < ReduceRetAge, 1 - (AgeRed)*(62-Age), 
+                     ifelse(RetType == "Reduced" & YOS >= EarlyRetYOS | RetType == "Reduced" & (Age + YOS >= NormalRetRule), 1 - (AgeRed)*(65-Age), 
                             ifelse(RetType == "No", 0, 1))),
          RF = ifelse(RF <0,0,RF)) %>% 
   rename(RetirementAge = Age) %>% 
   select(-Red) %>%
   ungroup() 
+
 #View(ReducedFactor)
+#https://texashistory.unt.edu/ark:/67531/metapth839369/m1/39/
 
 x <- ReducedFactor %>% 
 group_by(YOS) %>%
